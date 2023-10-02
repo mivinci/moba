@@ -3,7 +3,7 @@
 根据题目，完善下需求：
 
 - 按照 段位、排位分、擅长的路线 三个因素来尽可能公平地匹配队友或对手
-- 匹配逻辑和相关配置交给嵌入的 LUA 脚本，实现运行期热更新
+- 匹配逻辑和相关配置交给嵌入的 Lua 脚本，实现运行期热更新
 - 预组队存在队员人数不够的话，要跟池子里其他队伍合并，满足 5 人开黑条件
 - 匹配度和匹配速度取舍的动态调整
 - 匹配对手后允许队内换位，换位可能使得队伍的加权排位分更新，由此来模拟选/禁英雄的博弈阶段
@@ -84,7 +84,7 @@ struct moba {
 };
 ```
 
-`moba::L` LUA 运行沙盒。
+`moba::L` Lua 运行沙盒。
 
 `moba::queues` 不同人数队伍的匹配池，链表数组。
 
@@ -113,7 +113,7 @@ struct moba *moba_open(int n, int k);
 void moba_load(struct moba *M, const char *name);
 ```
 
-加载一个 LUA 脚本，参数 `name` 为要加载的 LUA 脚本的路径。所以系统检测到 LUA 脚本更新时，可以重新调用函数实现运行期热更新匹配逻辑的实现。
+加载一个 Lua 脚本，参数 `name` 为要加载的 Lua 脚本的路径。所以系统检测到 Lua 脚本更新时，可以重新调用函数实现运行期热更新匹配逻辑的实现。
 
 ```c
 void moba_push(struct moba *M, struct group *g);
@@ -160,7 +160,7 @@ struct match {
 
 ### 依赖
 
-需要先下载 LUA 库
+需要先下载 Lua 库
 
 - Archlinux
 
@@ -218,16 +218,35 @@ ELO     0.50    0.50
 
 ### 匹配逻辑
 
-匹配逻辑实现在 [test.lua](./test.lua) 里的 `match` 函数中，匹配队友和对手都是通过该函数实现。
-
-**按 score 匹配**
-
-当两队的 score 之差不超过 delta_score 时，匹配成功。
+匹配逻辑实现在 [test.lua](./test.lua) 里的 `match` 函数中，匹配队友和对手都是通过该函数实现，例如按段位、排位分、擅长路线综合匹配：
 
 ```lua
 function match(g1, g2)
+  -- 若段位差超过 delta_rank 则匹配失败
+  local rank_min1, rank_max1 = moba.rank(g1)
+  local rank_min2, rank_max2 = moba.rank(g2)
+  if ((rank_max1 - rank_min2) > delta_rank) or ((rank_max2 - rank_min1) > delta_rank) then
+    return false
+  end
+
+  -- 若路线覆盖没有达到 delta_role 则匹配失败
+  local role1 = moba.role(g1)
+  local role2 = moba.role(g2)
+  if (bitcount5(role1 | role2) < delta_role) then
+    return false
+  end
+
+  -- 若 score 之差超过 delta_score 则匹配失败
   return math.abs(score(g1) - score(g2)) < delta_score
 end
 ```
 
+## 参考
 
+- https://en.wikipedia.org/wiki/Elo_rating_system
+- https://ai.plainenglish.io/exploring-skill-based-matchmaking-systems-in-online-games-96491816d9e7
+- https://segmentfault.com/q/1010000009504187
+- https://www.youtube.com/watch?v=-pglxege-gU
+- https://github.com/cloudwu/skynet
+- https://www.lua.org/manual/5.1
+- *Programming in Lua - 4th edition*

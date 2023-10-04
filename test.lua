@@ -45,7 +45,9 @@ function match(g1, g2)
   end
 
   -- 若 score 之差超过 delta_score 则匹配失败
-  return math.abs(score(g1) - score(g2)) < delta_score
+  local s1 = score(g1)
+  local s2 = score(g2)
+  return math.abs(s1 - s2) < delta_score
 end
 
 

@@ -7,6 +7,23 @@
 
 const char *role_names[] = {"TOP", "BOT", "MID", "JG ", "SUP"};
 
+void print_match(struct moba *M, struct match *mat) {
+  double elo;
+  int m = mat->blue->cap;
+  struct player *p1, *p2;
+  printf("\tBLUE\tRED\n");
+  for (int i = 0; i < m; i++) {
+    p1 = mat->blue->players + i;
+    p2 = mat->red->players + i;
+    printf("%s\t%d(%d)\t%d(%d)\n", role_names[i], p1->id, p1->score, p2->id,
+           p2->score);
+  }
+  printf("SCORE\t%.1lf\t%.1lf\n", mobaL_score(M->L, mat->blue),
+         mobaL_score(M->L, mat->red));
+  elo = mobaL_elo(M->L, mat->blue, mat->red);
+  printf("ELO\t%.2lf\t%.2lf\n", elo, 1 - elo);
+}
+
 int main(void) {
   int n, m, k, id = 0;
   int rank, score, role;
@@ -42,24 +59,18 @@ int main(void) {
     moba_push(M, G + i);
   }
 
-  struct player *p1, *p2;
+  struct player tmp;
   struct match mat;
-  double elo;
-  int c = 0;
+  int pairs = 0;
+  char c;
   while (moba_match(M, &mat) == 0) {
-    printf("\tBLUE\tRED\n");
-    for (int i = 0; i < m; i++) {
-      p1 = mat.blue->players + i;
-      p2 = mat.red->players + i;
-      printf("%s\t%d\t%d\n", role_names[i], p1->id, p2->id);
-    }
-    printf("SCORE\t%.1lf\t%.1lf\n", mobaL_score(M->L, mat.blue),
-           mobaL_score(M->L, mat.red));
-    elo = mobaL_elo(M->L, mat.blue, mat.red);
-    printf("ELO\t%.2lf\t%.2lf\n", elo, 1 - elo);
-    c++;
+    print_match(M, &mat);
+    pairs++;
   }
-  printf("%d pair(s) of groups matched\n", c);
+  printf("%d pair(s) of groups matched\n", pairs);
   moba_close(M);
+  for (int i = 0; i < n; i++)
+    free((G + i)->players);
+  free(G);
   return 0;
 }
